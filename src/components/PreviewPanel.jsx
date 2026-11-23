@@ -10,34 +10,8 @@ import {
   Download
 } from "lucide-react";
 
+import { buildPreviewDocument, downloadHtmlFile, isPreviewable, slugify } from "../lib/preview";
 import "../styles/PreviewPanel.css";
-
-export function buildPreviewDocument(code = "", framework = "") {
-  const trimmed = code.trim();
-  if (
-    trimmed.toLowerCase().startsWith("<!doctype") ||
-    trimmed.toLowerCase().startsWith("<html")
-  ) {
-    return trimmed;
-  }
-
-  const bootstrapLink = framework.toLowerCase().includes("bootstrap")
-    ? `<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />`
-    : "";
-
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    ${bootstrapLink}
-    <style>
-      body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
-    </style>
-  </head>
-  <body>${trimmed}</body>
-</html>`;
-}
 
 function PreviewPanel({ generated }) {
   const [copied, setCopied] = useState(false);
@@ -68,9 +42,8 @@ function PreviewPanel({ generated }) {
     );
   }
 
-  const isHtmlPreviewable =
-    generated.code?.includes("<") &&
-    !generated.framework?.toLowerCase().includes("react");
+  const isHtmlPreviewable = isPreviewable(generated);
+  const isReact = generated.framework?.toLowerCase().includes("react");
 
   const handleCopy = async () => {
     try {
@@ -83,18 +56,18 @@ function PreviewPanel({ generated }) {
   };
 
   const handleDownload = () => {
-    const html = buildPreviewDocument(generated.code, generated.framework);
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(generated.componentType || "component")
-      .toLowerCase()
-      .replace(/\s+/g, "-")}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const slug = slugify(generated.componentType);
+    if (isReact) {
+      const blob = new Blob([generated.code || ""], { type: "text/javascript;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug}.jsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    downloadHtmlFile(`${slug}.html`, buildPreviewDocument(generated.code, generated.framework, generated.componentType));
   };
 
   return (
@@ -157,9 +130,14 @@ function PreviewPanel({ generated }) {
             </>
           )}
 
-          <button type="button" className="device-button" onClick={handleDownload}>
+          <button
+            type="button"
+            className="device-button"
+            onClick={handleDownload}
+            aria-label={`Download as ${isReact ? "JSX" : "HTML"} file`}
+          >
             <Download size={14} />
-            HTML
+            {isReact ? "JSX" : "HTML"}
           </button>
         </div>
       </div>
