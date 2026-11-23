@@ -1,4 +1,4 @@
-import logo from "../assets/pixelpilot-logo.png";
+import logo from "../assets/pixelpilot-logo.webp";
 import {
   LayoutDashboard,
   WandSparkles,
@@ -34,7 +34,7 @@ function Sidebar({
   onToggle = () => {},
   mobileOpen = false,
   onClose = () => {},
-  userName = "Ruth",
+  userName = "",
   preferredFramework = "Bootstrap"
 }) {
   const handleNavigation = (label) => {
@@ -42,7 +42,7 @@ function Sidebar({
     onClose();
   };
 
-  const avatarInitial = (userName || "R").trim().charAt(0).toUpperCase();
+  const avatarInitial = (userName.trim() || "P").charAt(0).toUpperCase();
 
   return (
     <>
@@ -55,22 +55,13 @@ function Sidebar({
       >
         <div className="sidebar-brand">
 <button
-  type="button"
-  onClick={() => handleNavigation("Dashboard")}
-  aria-label="Go to Dashboard"
-  style={{
-    background: "transparent",
-    border: "none",
-    padding: 0,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%"
-  }}
->
-  <img src={logo} alt="PixelPilot AI" className="sidebar-logo" />
-</button>
+            type="button"
+            className="sidebar-logo-button"
+            onClick={() => handleNavigation("Dashboard")}
+            aria-label="Go to Dashboard"
+          >
+            <img src={logo} alt="PixelPilot AI" className="sidebar-logo" width="520" height="173" />
+          </button>
           <button
             type="button"
             className="mobile-close"
@@ -166,7 +157,7 @@ function Sidebar({
 
             {!collapsed && (
               <div className="profile-details">
-                <strong>{userName || "PixelPilot User"}</strong>
+                <strong>{userName.trim() || "PixelPilot User"}</strong>
                 <span>{preferredFramework} Stack</span>
               </div>
             )}

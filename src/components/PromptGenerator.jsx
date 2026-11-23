@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Sparkles,
   WandSparkles,
@@ -9,62 +8,23 @@ import {
   RotateCcw
 } from "lucide-react";
 
+import { COMPONENT_TYPES, DESIGN_STYLES, FRAMEWORKS } from "../data/options";
 import "../styles/PromptGenerator.css";
 
-function PromptGenerator({
-  onGenerate,
-  isGenerating = false,
-  defaultFramework = "Bootstrap",
-  prefill = null
-}) {
-  const [prompt, setPrompt] = useState(
-    prefill?.prompt ??
-      "Create a responsive hero section for a modern botanical skincare studio with headline, product highlight, and call-to-action button."
-  );
-  const [componentType, setComponentType] = useState(
-    prefill?.componentType ?? "Hero Section"
-  );
-  const [framework, setFramework] = useState(
-    prefill?.framework ?? defaultFramework
-  );
-  const [designStyle, setDesignStyle] = useState(
-    prefill?.designStyle ?? "Modern"
-  );
-  const [primaryColor, setPrimaryColor] = useState(
-    prefill?.primaryColor ?? "#7557F6"
-  );
-
-  useEffect(() => {
-    setFramework(defaultFramework);
-  }, [defaultFramework]);
-
-  useEffect(() => {
-    if (!prefill) return;
-    if (prefill.prompt !== undefined) setPrompt(prefill.prompt);
-    if (prefill.componentType) setComponentType(prefill.componentType);
-    if (prefill.framework) setFramework(prefill.framework);
-    if (prefill.designStyle) setDesignStyle(prefill.designStyle);
-    if (prefill.primaryColor) setPrimaryColor(prefill.primaryColor);
-  }, [prefill]);
+function PromptGenerator({ draft, onChange, onReset, onGenerate, isGenerating = false }) {
+  const { prompt, componentType, framework, designStyle, primaryColor } = draft;
+  const canGenerate = Boolean(prompt.trim()) && !isGenerating;
 
   const handleGenerate = () => {
-    if (!prompt.trim() || isGenerating) return;
-
-    onGenerate({
-      prompt,
-      componentType,
-      framework,
-      designStyle,
-      primaryColor
-    });
+    if (canGenerate) onGenerate({ ...draft, prompt: prompt.trim() });
   };
 
-  const handleReset = () => {
-    setPrompt("");
-    setComponentType("Hero Section");
-    setFramework(defaultFramework);
-    setDesignStyle("Modern");
-    setPrimaryColor("#7557F6");
+  // Ctrl/Cmd + Enter in the prompt box generates straight away.
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      handleGenerate();
+    }
   };
 
   return (
@@ -90,7 +50,8 @@ function PromptGenerator({
           <textarea
             id="component-prompt"
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => onChange({ prompt: e.target.value })}
+            onKeyDown={handleKeyDown}
             placeholder="E.g. Create a modern hero section for a skincare brand with a large headline, short description and a call-to-action button..."
             rows={5}
             maxLength={1000}
@@ -99,7 +60,7 @@ function PromptGenerator({
           <div className="prompt-input-footer">
             <span>
               <Sparkles size={13} />
-              Be descriptive for better results
+              Be descriptive · Ctrl+Enter to generate
             </span>
             <span>{prompt.length}/1000</span>
           </div>
@@ -116,15 +77,11 @@ function PromptGenerator({
               <select
                 id="component-type"
                 value={componentType}
-                onChange={(e) => setComponentType(e.target.value)}
+                onChange={(e) => onChange({ componentType: e.target.value })}
               >
-                <option>Hero Section</option>
-                <option>Navigation Bar</option>
-                <option>Feature Cards</option>
-                <option>Contact Form</option>
-                <option>Full Website (All Sections)</option>
-                <option>Pricing Section</option>
-                <option>Footer</option>
+                {COMPONENT_TYPES.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
               <ChevronDown size={16} />
             </div>
@@ -140,11 +97,11 @@ function PromptGenerator({
               <select
                 id="framework"
                 value={framework}
-                onChange={(e) => setFramework(e.target.value)}
+                onChange={(e) => onChange({ framework: e.target.value })}
               >
-                <option>Bootstrap</option>
-                <option>HTML &amp; CSS</option>
-                <option>React</option>
+                {FRAMEWORKS.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
               <ChevronDown size={16} />
             </div>
@@ -160,13 +117,11 @@ function PromptGenerator({
               <select
                 id="design-style"
                 value={designStyle}
-                onChange={(e) => setDesignStyle(e.target.value)}
+                onChange={(e) => onChange({ designStyle: e.target.value })}
               >
-                <option>Modern</option>
-                <option>Minimal</option>
-                <option>Glassmorphism</option>
-                <option>Gradient</option>
-                <option>Corporate</option>
+                {DESIGN_STYLES.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </select>
               <ChevronDown size={16} />
             </div>
@@ -183,7 +138,7 @@ function PromptGenerator({
             <input
               type="color"
               value={primaryColor}
-              onChange={(e) => setPrimaryColor(e.target.value)}
+              onChange={(e) => onChange({ primaryColor: e.target.value })}
               aria-label="Choose primary color"
             />
             <span>{primaryColor.toUpperCase()}</span>
@@ -195,7 +150,7 @@ function PromptGenerator({
             type="button"
             className="generate-button"
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating}
+            disabled={!canGenerate}
           >
             {isGenerating ? (
               <>
@@ -210,7 +165,7 @@ function PromptGenerator({
             )}
           </button>
 
-          <button className="reset-button" onClick={handleReset} type="button">
+          <button className="reset-button" onClick={onReset} type="button">
             <RotateCcw size={15} />
             Reset
           </button>
