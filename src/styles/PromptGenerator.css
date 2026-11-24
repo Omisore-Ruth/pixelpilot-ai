@@ -324,3 +324,102 @@
 .use-example-button:hover {
   background: rgba(117, 87, 246, 0.24);
 }
+
+/* ---- Colour field (swatch + typeable hex + presets) ---- */
+.color-picker-row {
+  align-items: flex-start;
+}
+
+.color-field {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.color-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-swatch {
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.color-swatch input {
+  width: 150%;
+  height: 150%;
+  margin: -25%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+}
+
+.color-hex-input {
+  width: 104px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--border-color);
+  background: #141a30;
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  outline: none;
+}
+
+.color-hex-input:focus {
+  border-color: rgba(167, 139, 250, 0.7);
+}
+
+.color-hex-input.invalid {
+  border-color: rgba(248, 113, 113, 0.7);
+}
+
+.color-hint {
+  color: #fca5a5 !important;
+  font-size: 10px;
+  margin: 0 !important;
+}
+
+.color-presets {
+  display: flex;
+  gap: 5px;
+}
+
+.color-preset {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  outline: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease;
+}
+
+.color-preset:hover {
+  transform: scale(1.15);
+}
+
+.color-preset.selected {
+  border-color: #0f1326;
+  outline: 2px solid white;
+}
+
+@media (max-width: 480px) {
+  .color-picker-row {
+    flex-direction: column;
+  }
+
+  .color-field {
+    justify-items: start;
+  }
+}

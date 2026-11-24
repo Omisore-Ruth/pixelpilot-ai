@@ -9,8 +9,10 @@ import {
   Eye,
   Download,
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  Maximize2
 } from "lucide-react";
+import FullscreenPreview from "./FullscreenPreview";
 
 import { buildPreviewDocument, downloadHtmlFile, isPreviewable, slugify } from "../lib/preview";
 import "../styles/PreviewPanel.css";
@@ -137,6 +139,7 @@ function PreviewPanel({
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("preview");
   const [device, setDevice] = useState("desktop");
+  const [fullscreen, setFullscreen] = useState(false);
 
   if (isGenerating) return <GeneratingState pending={pending} />;
 
@@ -260,6 +263,15 @@ function PreviewPanel({
               >
                 <Smartphone size={14} />
               </button>
+              <button
+                type="button"
+                className="device-button"
+                onClick={() => setFullscreen(true)}
+                aria-label="Open full-screen preview"
+                title="Full screen"
+              >
+                <Maximize2 size={14} />
+              </button>
             </>
           )}
 
@@ -287,10 +299,10 @@ function PreviewPanel({
             <iframe
               title="Generated component live preview"
               srcDoc={buildPreviewDocument(generated.code, generated.framework)}
-              sandbox="allow-scripts"
+              sandbox="allow-scripts allow-forms"
               style={{
                 width: "100%",
-                minHeight: "360px",
+                minHeight: "420px",
                 border: "none",
                 borderRadius: "10px",
                 background: "#ffffff"
@@ -317,6 +329,15 @@ function PreviewPanel({
         <span>Component: {generated.componentType}</span>
         <span>Framework: {generated.framework}</span>
       </div>
+
+      {fullscreen && isHtmlPreviewable && (
+        <FullscreenPreview
+          title={generated.componentType}
+          subtitle={`${generated.framework} · ${generated.designStyle} · ${generated.primaryColor}`}
+          html={buildPreviewDocument(generated.code, generated.framework, generated.componentType)}
+          onClose={() => setFullscreen(false)}
+        />
+      )}
     </section>
   );
 }

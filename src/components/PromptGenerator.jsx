@@ -10,6 +10,7 @@ import {
 
 import { COMPONENT_TYPES, DESIGN_STYLES, EXAMPLE_PROMPTS, FRAMEWORKS } from "../data/options";
 import { useTypingPlaceholder } from "../hooks/useTypingPlaceholder";
+import ColorField from "./ColorField";
 import "../styles/PromptGenerator.css";
 
 function PromptGenerator({ draft, onChange, onReset, onGenerate, isGenerating = false }) {
@@ -146,18 +147,10 @@ function PromptGenerator({ draft, onChange, onReset, onGenerate, isGenerating = 
         <div className="color-picker-row">
           <div>
             <span className="color-picker-title">Primary color</span>
-            <p>Choose your component&apos;s accent color.</p>
+            <p>Pick, type or paste a colour code.</p>
           </div>
 
-          <label className="color-picker-control">
-            <input
-              type="color"
-              value={primaryColor}
-              onChange={(e) => onChange({ primaryColor: e.target.value })}
-              aria-label="Choose primary color"
-            />
-            <span>{primaryColor.toUpperCase()}</span>
-          </label>
+          <ColorField value={primaryColor} onChange={(color) => onChange({ primaryColor: color })} />
         </div>
 
         <div className="generator-actions">
