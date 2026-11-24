@@ -8,6 +8,7 @@ import {
   Settings,
   CircleHelp,
   ChevronLeft,
+  LogOut,
   Sparkles,
   X
 } from "lucide-react";
@@ -35,7 +36,9 @@ function Sidebar({
   mobileOpen = false,
   onClose = () => {},
   userName = "",
-  preferredFramework = "Bootstrap"
+  email = "",
+  preferredFramework = "Bootstrap",
+  onSignOut = () => {}
 }) {
   const handleNavigation = (label) => {
     onNavigate(label);
@@ -158,8 +161,20 @@ function Sidebar({
             {!collapsed && (
               <div className="profile-details">
                 <strong>{userName.trim() || "PixelPilot User"}</strong>
-                <span>{preferredFramework} Stack</span>
+                <span title={email}>{email || `${preferredFramework} Stack`}</span>
               </div>
+            )}
+
+            {!collapsed && (
+              <button
+                type="button"
+                className="collapse-button"
+                onClick={onSignOut}
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut size={17} />
+              </button>
             )}
 
             <button

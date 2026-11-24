@@ -1,17 +1,23 @@
+import { getAccessToken } from "./supabase";
+
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
 
 const REQUEST_TIMEOUT_MS = 90_000;
 
-export async function generateComponent(settings) {
+async function postJson(path, payload) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const token = await getAccessToken();
 
   let response;
   try {
-    response = await fetch(`${API_BASE}/api/generate`, {
+    response = await fetch(`${API_BASE}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload),
       signal: controller.signal
     });
   } catch (error) {
@@ -37,10 +43,18 @@ export async function generateComponent(settings) {
   if (!response.ok || !data?.success) {
     if (data?.error) throw new Error(data.error);
     if (response.status === 429) {
-      throw new Error("You're generating too quickly. Please wait a minute and try again.");
+      throw new Error("You're going too quickly. Please wait a minute and try again.");
     }
     throw new Error(`The server returned an error (${response.status}). Please try again.`);
   }
 
   return data;
+}
+
+export function generateComponent(settings) {
+  return postJson("/api/generate", settings);
+}
+
+export function askPixie({ messages, page, userName }) {
+  return postJson("/api/assistant", { messages, page, userName });
 }
