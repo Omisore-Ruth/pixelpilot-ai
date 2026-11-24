@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ArrowRight, Download, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowRight, Download, FolderOpen, Sparkles, Trash2, X } from "lucide-react";
 
 import { buildCombinedSite, defaultExportSelection, downloadHtmlFile, isPreviewable } from "../lib/preview";
 import AnimatedHeading from "../components/AnimatedHeading";
 
-function SavedComponentsPage({ items, onOpen, onRemove, navigate, notice, onDismissNotice }) {
+function SavedComponentsPage({ items, projects = [], loading = false, onOpen, onRemove, navigate, notice, onDismissNotice }) {
+  const projectName = (id) => projects.find((p) => p.id === id)?.name;
   // Which components go into the combined export. Starts with the newest of
   // each section type; the user can tick/untick from there.
   const [selectedIds, setSelectedIds] = useState(() => defaultExportSelection(items));
@@ -14,9 +15,13 @@ function SavedComponentsPage({ items, onOpen, onRemove, navigate, notice, onDism
   const toggle = (id) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const handleRemove = (id) => {
+  const handleRemove = async (id) => {
     setSelectedIds((prev) => prev.filter((x) => x !== id));
-    onRemove(id);
+    try {
+      await onRemove(id);
+    } catch {
+      // the item stays; nothing else to undo
+    }
   };
 
   const handleExport = () => {
@@ -63,7 +68,9 @@ function SavedComponentsPage({ items, onOpen, onRemove, navigate, notice, onDism
         </div>
       )}
 
-      {items.length === 0 ? (
+      {loading ? (
+        <p className="loading-line">Loading your library...</p>
+      ) : items.length === 0 ? (
         <div className="glass-card welcome-card page-card">
           <h3>No saved components yet</h3>
           <p>
@@ -87,6 +94,12 @@ function SavedComponentsPage({ items, onOpen, onRemove, navigate, notice, onDism
                     {item.framework} · {item.designStyle} · {item.primaryColor}
                   </p>
                   {item.prompt && <p className="card-prompt">{item.prompt}</p>}
+                  {item.projectId && projectName(item.projectId) && (
+                    <span className="project-badge">
+                      <FolderOpen size={12} />
+                      {projectName(item.projectId)}
+                    </span>
+                  )}
                 </div>
 
                 <label className={`export-toggle ${exportable ? "" : "is-disabled"}`}>

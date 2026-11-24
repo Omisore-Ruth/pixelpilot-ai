@@ -61,9 +61,12 @@ function sectionRank(type) {
 
 // Combines selected saved components into one page, in a sensible section
 // order (nav → hero → content → contact → footer), without nested documents.
-export function buildCombinedSite(items) {
+// keepOrder: use the order given (a project's own order) instead of sorting.
+export function buildCombinedSite(items, { keepOrder = false, title = "My Website" } = {}) {
   const usable = items.filter(isPreviewable);
-  const sorted = [...usable].sort((a, b) => sectionRank(a.componentType) - sectionRank(b.componentType));
+  const sorted = keepOrder
+    ? usable
+    : [...usable].sort((a, b) => sectionRank(a.componentType) - sectionRank(b.componentType));
 
   const heads = new Set();
   const bodies = [];
@@ -85,7 +88,7 @@ export function buildCombinedSite(items) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Website</title>
+    <title>${title.replace(/[<>&"]/g, "")}</title>
     ${bootstrapLink}
     <style>
       body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
