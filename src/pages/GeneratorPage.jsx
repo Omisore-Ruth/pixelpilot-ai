@@ -2,6 +2,7 @@ import { Sparkles, X } from "lucide-react";
 
 import PromptGenerator from "../components/PromptGenerator";
 import PreviewPanel from "../components/PreviewPanel";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 function GeneratorPage({
   draft,
@@ -20,10 +21,7 @@ function GeneratorPage({
         PIXELPILOT AI GENERATOR
       </div>
 
-      <h1>
-        Turn your ideas into
-        <span className="gradient-text"> interfaces.</span>
-      </h1>
+      <AnimatedHeading lead="Turn your ideas into" highlight="interfaces." />
 
       <p className="dashboard-description">
         Describe the component you want. Choose your preferred framework and design style, then
@@ -48,7 +46,12 @@ function GeneratorPage({
           isGenerating={isGenerating}
         />
         {/* key resets the Preview/Code tab and device toggle for each new result */}
-        <PreviewPanel key={generated?.id ?? "empty"} generated={generated} />
+        <PreviewPanel
+          key={generated?.id ?? "empty"}
+          generated={generated}
+          isGenerating={isGenerating}
+          pending={draft}
+        />
       </div>
     </section>
   );

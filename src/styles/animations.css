@@ -1,0 +1,318 @@
+/* ==========================================================================
+   PixelPilot motion
+   Short, soft and mostly one-time: things animate as they appear, then stay
+   still. Everything is switched off for "reduce motion" users at the bottom.
+   ========================================================================== */
+
+:root {
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ---- Headline: words rise in one after another ---- */
+.animated-heading {
+  /* keep words wrapping naturally */
+  overflow-wrap: break-word;
+}
+
+.reveal-word {
+  display: inline-block;
+  margin-right: 0.26em;
+  opacity: 0;
+  transform: translateY(0.45em);
+  filter: blur(6px);
+  animation: word-in 0.65s var(--ease-out-soft) forwards;
+  animation-delay: calc(var(--i, 0) * 75ms + 80ms);
+}
+
+.reveal-word:last-child {
+  margin-right: 0;
+}
+
+@keyframes word-in {
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* Highlighted words: a light sweep passes across them once after they land. */
+.shimmer-text {
+  background-image: linear-gradient(
+    110deg,
+    #a78bfa 0%,
+    #38bdf8 35%,
+    #eef2ff 50%,
+    #38bdf8 65%,
+    #a78bfa 100%
+  );
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  animation:
+    word-in 0.65s var(--ease-out-soft) forwards,
+    shimmer 1.6s ease-in-out 1 forwards;
+  animation-delay:
+    calc(var(--i, 0) * 75ms + 80ms),
+    calc(var(--i, 0) * 75ms + 700ms);
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+/* ---- Page content fades up when you switch pages ---- */
+.workspace-eyebrow,
+.dashboard-description {
+  animation: fade-up 0.5s var(--ease-out-soft) both;
+}
+
+.workspace-eyebrow {
+  animation-delay: 0.02s;
+}
+
+.dashboard-description {
+  animation-delay: 0.32s;
+}
+
+.dashboard-page > .glass-card,
+.dashboard-page > .notice,
+.generator-page > .notice,
+.page-heading-row > .primary-button {
+  animation: fade-up 0.55s var(--ease-out-soft) 0.42s both;
+}
+
+/* The layout fades in once when you open the page... */
+.generator-layout {
+  animation: fade-up 0.55s var(--ease-out-soft) 0.38s both;
+}
+
+/* ...and each new result / building state fades in straight away. */
+.generator-layout > .preview-panel {
+  animation: fade-in-quick 0.35s ease both;
+}
+
+@keyframes fade-in-quick {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Card grids: cards arrive one after another ---- */
+.component-grid > * {
+  animation: fade-up 0.5s var(--ease-out-soft) both;
+  animation-delay: calc(var(--stagger, 0) * 60ms + 0.4s);
+}
+
+.component-grid > *:nth-child(1) { --stagger: 0; }
+.component-grid > *:nth-child(2) { --stagger: 1; }
+.component-grid > *:nth-child(3) { --stagger: 2; }
+.component-grid > *:nth-child(4) { --stagger: 3; }
+.component-grid > *:nth-child(5) { --stagger: 4; }
+.component-grid > *:nth-child(6) { --stagger: 5; }
+.component-grid > *:nth-child(7) { --stagger: 6; }
+.component-grid > *:nth-child(8) { --stagger: 7; }
+.component-grid > *:nth-child(n + 9) { --stagger: 8; }
+
+/* Cards lift slightly on hover. */
+.component-grid > .glass-card {
+  transition:
+    transform 0.25s var(--ease-out-soft),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.component-grid > .glass-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(167, 139, 250, 0.32);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+}
+
+/* ---- Login screen ---- */
+.auth-brand > :not(h1) {
+  animation: fade-up 0.6s var(--ease-out-soft) both;
+}
+
+.auth-brand > .auth-logo {
+  animation-delay: 0s;
+}
+
+.auth-brand > p {
+  animation-delay: 0.45s;
+}
+
+.auth-features li {
+  animation: fade-up 0.5s var(--ease-out-soft) both;
+}
+
+.auth-features li:nth-child(1) { animation-delay: 0.6s; }
+.auth-features li:nth-child(2) { animation-delay: 0.7s; }
+.auth-features li:nth-child(3) { animation-delay: 0.8s; }
+
+.auth-card {
+  animation: fade-up 0.6s var(--ease-out-soft) 0.15s both;
+}
+
+/* ---- Generate button: a light sweep while it's working ---- */
+.generate-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.generate-button.is-loading:disabled {
+  opacity: 0.9;
+  cursor: progress;
+}
+
+.generate-button.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.28) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: button-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes button-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ---- Splash: only fades in if loading actually takes a moment ---- */
+.auth-splash {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  align-content: center;
+  opacity: 0;
+  animation: fade-up 0.4s ease 0.25s forwards;
+}
+
+.splash-bar {
+  width: 160px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.splash-bar span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--gradient-primary);
+  animation: splash-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes splash-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+/* ==========================================================================
+   Respect "reduce motion": show everything immediately, no movement.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal-word {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .component-grid > .glass-card:hover {
+    transform: none;
+  }
+}
+
+/* ---- Toast ---- */
+.toast {
+  position: fixed;
+  right: 24px;
+  top: 92px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 12px;
+  background: rgba(23, 29, 52, 0.96);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  color: #e2e8f0;
+  font-size: 13px;
+  animation: toast-in 0.35s var(--ease-out-soft) both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+.toast-icon {
+  color: #2dd4bf;
+  flex-shrink: 0;
+}
+
+.toast-action {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(117, 87, 246, 0.25);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toast-action:hover {
+  background: rgba(117, 87, 246, 0.4);
+}
+
+.toast-close {
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .toast {
+    top: 86px;
+    right: 16px;
+    left: 16px;
+  }
+}

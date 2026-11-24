@@ -8,12 +8,15 @@ import {
   RotateCcw
 } from "lucide-react";
 
-import { COMPONENT_TYPES, DESIGN_STYLES, FRAMEWORKS } from "../data/options";
+import { COMPONENT_TYPES, DESIGN_STYLES, EXAMPLE_PROMPTS, FRAMEWORKS } from "../data/options";
+import { useTypingPlaceholder } from "../hooks/useTypingPlaceholder";
 import "../styles/PromptGenerator.css";
 
 function PromptGenerator({ draft, onChange, onReset, onGenerate, isGenerating = false }) {
   const { prompt, componentType, framework, designStyle, primaryColor } = draft;
   const canGenerate = Boolean(prompt.trim()) && !isGenerating;
+  // Example ideas type themselves out while the box is empty.
+  const { text: typedExample, example } = useTypingPlaceholder(EXAMPLE_PROMPTS, !prompt);
 
   const handleGenerate = () => {
     if (canGenerate) onGenerate({ ...draft, prompt: prompt.trim() });
@@ -52,16 +55,28 @@ function PromptGenerator({ draft, onChange, onReset, onGenerate, isGenerating = 
             value={prompt}
             onChange={(e) => onChange({ prompt: e.target.value })}
             onKeyDown={handleKeyDown}
-            placeholder="E.g. Create a modern hero section for a skincare brand with a large headline, short description and a call-to-action button..."
+            placeholder={`${typedExample}|`}
             rows={5}
             maxLength={1000}
           />
 
           <div className="prompt-input-footer">
-            <span>
-              <Sparkles size={13} />
-              Be descriptive · Ctrl+Enter to generate
-            </span>
+            {prompt ? (
+              <span>
+                <Sparkles size={13} />
+                Be descriptive · Ctrl+Enter to generate
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="use-example-button"
+                onClick={() => onChange({ prompt: example })}
+                title={example}
+              >
+                <Sparkles size={13} />
+                Use this example
+              </button>
+            )}
             <span>{prompt.length}/1000</span>
           </div>
         </div>
@@ -148,7 +163,7 @@ function PromptGenerator({ draft, onChange, onReset, onGenerate, isGenerating = 
         <div className="generator-actions">
           <button
             type="button"
-            className="generate-button"
+            className={`generate-button ${isGenerating ? "is-loading" : ""}`}
             onClick={handleGenerate}
             disabled={!canGenerate}
           >

@@ -1,4 +1,5 @@
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 function ProjectsPage({ savedCount, userName, framework, navigate }) {
   const lines = [
@@ -16,10 +17,7 @@ function ProjectsPage({ savedCount, userName, framework, navigate }) {
         PROJECT BUILDER
       </div>
 
-      <h1>
-        PixelPilot AI
-        <span className="gradient-text"> project bundle.</span>
-      </h1>
+      <AnimatedHeading lead="PixelPilot AI" highlight="project bundle." />
 
       <div className="glass-card welcome-card page-card wide">
         <h3>Workspace Summary</h3>

@@ -3,6 +3,7 @@ import { ArrowRight, Check, Sparkles } from "lucide-react";
 
 import { FRAMEWORKS } from "../data/options";
 import { friendlyAuthError } from "../lib/supabase";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 function SettingsPage({
   userName,
@@ -42,10 +43,7 @@ function SettingsPage({
         PERSONALIZATION
       </div>
 
-      <h1>
-        Tailor your
-        <span className="gradient-text"> workspace.</span>
-      </h1>
+      <AnimatedHeading lead="Tailor your" highlight="workspace." />
 
       <div className="glass-card welcome-card page-card narrow">
         <h3>Your Account</h3>

@@ -17,6 +17,9 @@ function App() {
     return (
       <div className="auth-splash" aria-busy="true" aria-label="Loading PixelPilot">
         <img src={logo} alt="PixelPilot AI" width="520" height="173" />
+        <div className="splash-bar" aria-hidden="true">
+          <span />
+        </div>
       </div>
     );
   }

@@ -1,4 +1,5 @@
 import { ArrowRight, Sparkles } from "lucide-react";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 function HelpPage({ navigate }) {
   return (
@@ -8,10 +9,7 @@ function HelpPage({ navigate }) {
         HELP &amp; SUPPORT
       </div>
 
-      <h1>
-        Getting the most from
-        <span className="gradient-text"> PixelPilot.</span>
-      </h1>
+      <AnimatedHeading lead="Getting the most from" highlight="PixelPilot." />
 
       <div className="glass-card welcome-card page-card wide">
         <h3>Tips for better results</h3>

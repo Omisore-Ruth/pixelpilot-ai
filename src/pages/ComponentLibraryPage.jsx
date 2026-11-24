@@ -1,6 +1,7 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 
 import { LIBRARY_PRESETS } from "../data/starters";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 function ComponentLibraryPage({ onUsePreset }) {
   return (
@@ -10,10 +11,7 @@ function ComponentLibraryPage({ onUsePreset }) {
         COMPONENT PRESETS
       </div>
 
-      <h1>
-        Starter prompts for
-        <span className="gradient-text"> every section.</span>
-      </h1>
+      <AnimatedHeading lead="Starter prompts for" highlight="every section." />
 
       <p className="dashboard-description">
         Pick any core section below to pre-fill the AI generator with clean CSS or Bootstrap

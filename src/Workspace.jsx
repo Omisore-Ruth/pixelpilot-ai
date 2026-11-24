@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bookmark, Menu, Settings } from "lucide-react";
 
 import Sidebar from "./components/Sidebar";
 import Pixie from "./components/Pixie";
+import Toast from "./components/Toast";
 import DashboardPage from "./pages/DashboardPage";
 import GeneratorPage from "./pages/GeneratorPage";
 import SavedComponentsPage from "./pages/SavedComponentsPage";
@@ -71,6 +72,8 @@ function Workspace({ user, welcomeOnMount = false }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [libraryNotice, setLibraryNotice] = useState("");
+  const [toast, setToast] = useState(null);
+  const closeToast = useCallback(() => setToast(null), []);
 
   useEffect(() => writeStorage(FRAMEWORK_KEY, preferredFramework), [preferredFramework]);
   useEffect(() => writeStorage(savedKey(user.id), savedComponents), [savedComponents, user.id]);
@@ -124,6 +127,7 @@ function Workspace({ user, welcomeOnMount = false }) {
         );
       }
       setSavedComponents((prev) => [item, ...prev].slice(0, MAX_SAVED));
+      setToast({ id: item.id, message: `${item.componentType} saved to your library` });
     } catch (error) {
       setErrorMessage(error.message || "Unable to generate component. Please try again.");
     } finally {
@@ -264,6 +268,19 @@ function Workspace({ user, welcomeOnMount = false }) {
 
         {activeItem === "Help & Support" && <HelpPage navigate={handleNavigation} />}
       </main>
+
+      {toast && (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          actionLabel="View"
+          onAction={() => {
+            closeToast();
+            handleNavigation("Saved Components");
+          }}
+          onClose={closeToast}
+        />
+      )}
 
       <Pixie
         userName={userName}

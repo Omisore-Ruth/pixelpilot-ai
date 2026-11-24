@@ -16,6 +16,7 @@ import {
 import logo from "../assets/pixelpilot-logo.webp";
 import { friendlyAuthError, isSupabaseConfigured, supabase } from "../lib/supabase";
 import "../styles/AuthPage.css";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -191,10 +192,7 @@ function AuthPage({ recovering = false, onRecovered, onSignInStart }) {
     <div className="auth-shell">
       <aside className="auth-brand">
         <img src={logo} alt="PixelPilot AI" className="auth-logo" width="520" height="173" />
-        <h1>
-          Describe it.
-          <span className="gradient-text"> We'll build it.</span>
-        </h1>
+        <AnimatedHeading lead="Describe it." highlight="We'll build it." />
         <p>
           PixelPilot turns plain-English ideas into responsive website sections you can preview,
           copy and publish.
