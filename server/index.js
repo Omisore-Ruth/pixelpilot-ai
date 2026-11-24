@@ -1,8 +1,9 @@
 import cors from "cors";
 import express from "express";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { GoogleGenAI } from "@google/genai";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -37,6 +38,25 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+// Supabase is used only to check that requests come from a signed-in user.
+// The same .env works locally for both frontend (VITE_*) and backend.
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabase =
+  SUPABASE_URL && SUPABASE_ANON_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false }
+      })
+    : null;
+
+if (!supabase) {
+  console.warn(
+    "WARNING: SUPABASE_URL / SUPABASE_ANON_KEY are not set, so the API is open to anyone. " +
+      "Set them before deploying."
+  );
+}
 
 // Render, Railway, Vercel etc. sit behind a proxy; this lets the rate limiter
 // see the real visitor IP instead of the proxy's.
@@ -54,16 +74,50 @@ app.use(
 
 app.use(express.json({ limit: "20kb" }));
 
-const generateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: Number(process.env.RATE_LIMIT_PER_MINUTE) || 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: "You're generating too quickly. Please wait a minute and try again."
+// Rejects requests that don't carry a valid Supabase access token.
+async function requireUser(req, res, next) {
+  if (!supabase) return next();
+
+  const header = req.get("authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token) {
+    return res.status(401).json({ success: false, error: "Please sign in to continue." });
   }
-});
+
+  try {
+    const { data, error } = await supabase.auth.getClaims(token);
+    if (error || !data?.claims?.sub) throw error || new Error("No user in token");
+    req.user = { id: data.claims.sub, email: data.claims.email };
+    next();
+  } catch {
+    res.status(401).json({
+      success: false,
+      error: "Your session has expired. Please sign in again."
+    });
+  }
+}
+
+// Limits are per signed-in user (or per IP if auth is off).
+function makeLimiter(limit, message) {
+  return rateLimit({
+    windowMs: 60 * 1000,
+    limit,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    keyGenerator: (req) => req.user?.id || ipKeyGenerator(req.ip),
+    message: { success: false, error: message }
+  });
+}
+
+const generateLimiter = makeLimiter(
+  Number(process.env.RATE_LIMIT_PER_MINUTE) || 10,
+  "You're generating too quickly. Please wait a minute and try again."
+);
+
+const assistantLimiter = makeLimiter(
+  Number(process.env.ASSISTANT_LIMIT_PER_MINUTE) || 20,
+  "I need a short breather. Please ask me again in a minute."
+);
 
 function pick(value, allowed, fallback) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -71,10 +125,10 @@ function pick(value, allowed, fallback) {
 }
 
 app.get("/api/health", (req, res) => {
-  res.json({ success: true, message: "PixelPilot AI backend is running." });
+  res.json({ success: true, message: "PixelPilot AI backend is running.", auth: Boolean(supabase) });
 });
 
-app.post("/api/generate", generateLimiter, async (req, res) => {
+app.post("/api/generate", requireUser, generateLimiter, async (req, res) => {
   const { prompt, componentType, framework, designStyle, primaryColor } = req.body || {};
 
   if (typeof prompt !== "string" || !prompt.trim()) {
@@ -127,10 +181,8 @@ CODE REQUIREMENTS:
 - Return ONLY the raw code—do NOT wrap the response in Markdown \`\`\` code fences and do NOT include explanations.`;
 
   try {
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
     const response = await ai.models.generateContent({
-      model: modelName,
+      model: MODEL_NAME,
       contents: `USER REQUEST: ${prompt.trim()}
 COMPONENT TYPE: ${targetType}
 FRAMEWORK: ${targetFramework}
@@ -167,6 +219,111 @@ Generate the complete ${targetType} now.`,
     res.status(502).json({
       success: false,
       error: "Component generation failed. Please try again in a moment."
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Pixie, the voice assistant
+// ---------------------------------------------------------------------------
+const PAGES = [
+  "Dashboard",
+  "Generate UI",
+  "My Projects",
+  "Component Library",
+  "Saved Components",
+  "Settings",
+  "Help & Support"
+];
+
+const PIXIE_INSTRUCTIONS = `You are Pixie, the friendly voice guide inside PixelPilot AI, a web app made by Omisore Ruth.
+Your replies are read aloud, so write the way a warm, upbeat person speaks.
+
+WHAT PIXELPILOT DOES:
+- Users describe a website section in plain English and PixelPilot's AI writes the code.
+- Component types: Hero Section, Navigation Bar, Feature Cards, Contact Form, Pricing Section, Footer, or a Full Website with all sections.
+- Frameworks: Bootstrap 5, plain HTML & CSS, or React. Design styles: Modern, Minimal, Glassmorphism, Gradient, Corporate. Users also pick a brand colour.
+- Results show in a live preview with desktop and mobile views, plus a Code tab with a copy button and an HTML (or JSX) download.
+- Every result is saved automatically in Saved Components, in this browser. There users tick the sections they want and export them as one index.html, ordered nav, hero, content, contact, footer.
+- Component Library has ready-made starter prompts. Settings holds their display name, default framework and whether you greet them on login.
+- Tip: better prompts name the business, the audience, the layout and must-have elements. Ctrl+Enter generates.
+- React results can't be previewed live yet; they can be copied or downloaded.
+
+PAGES YOU CAN OPEN: ${PAGES.join(", ")}.
+
+RULES:
+- Keep replies to 1 to 3 short sentences. No markdown, bullet points, code, emojis or URLs.
+- If the user asks to go somewhere or start something, set "navigate" to the matching page and say you're taking them there. Otherwise set it to "none".
+- You may answer general web design and frontend questions briefly. For anything unrelated, answer kindly in one sentence and offer to help with PixelPilot.
+- Never invent features PixelPilot doesn't have. If unsure, say so and suggest Help & Support.`;
+
+const PIXIE_SCHEMA = {
+  type: "object",
+  properties: {
+    reply: { type: "string" },
+    navigate: { type: "string", enum: [...PAGES, "none"] }
+  },
+  required: ["reply", "navigate"]
+};
+
+app.post("/api/assistant", requireUser, assistantLimiter, async (req, res) => {
+  const { messages, page, userName } = req.body || {};
+
+  const history = Array.isArray(messages) ? messages.slice(-10) : [];
+  const valid = history.every(
+    (m) =>
+      m &&
+      (m.role === "user" || m.role === "assistant") &&
+      typeof m.text === "string" &&
+      m.text.trim() &&
+      m.text.length <= 600
+  );
+
+  if (!history.length || !valid || history[history.length - 1].role !== "user") {
+    return res.status(400).json({ success: false, error: "Please ask me a question." });
+  }
+
+  const currentPage = PAGES.includes(page) ? page : "Dashboard";
+  const name =
+    typeof userName === "string" ? userName.replace(/[^\p{L}\p{N} '.-]/gu, "").slice(0, 40).trim() : "";
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: history.map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.text.trim() }]
+      })),
+      config: {
+        systemInstruction: `${PIXIE_INSTRUCTIONS}
+
+CONTEXT: The user is on the "${currentPage}" page.${name ? ` Their name is ${name}.` : ""}`,
+        responseMimeType: "application/json",
+        responseJsonSchema: PIXIE_SCHEMA,
+        temperature: 0.6
+      }
+    });
+
+    let parsed;
+    try {
+      parsed = JSON.parse(response.text || "{}");
+    } catch {
+      parsed = { reply: (response.text || "").trim(), navigate: "none" };
+    }
+
+    const reply = typeof parsed.reply === "string" ? parsed.reply.trim() : "";
+    if (!reply) throw new Error("Empty assistant reply");
+
+    res.json({
+      success: true,
+      reply,
+      navigate: PAGES.includes(parsed.navigate) ? parsed.navigate : null
+    });
+  } catch (error) {
+    console.error("Assistant error:", error);
+    res.status(502).json({
+      success: false,
+      error: "Sorry, I couldn't think of an answer just now. Please try again."
     });
   }
 });

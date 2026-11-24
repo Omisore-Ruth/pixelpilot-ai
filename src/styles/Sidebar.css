@@ -55,6 +55,33 @@
 .sidebar-navigation {
   flex: 1;
   overflow-y: auto;
+  /* Nav items slide 3px right on hover; without this they poke past the edge
+     and the browser adds a horizontal scrollbar. */
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/* Slim vertical scrollbar that only shows while hovering the menu. */
+.sidebar-navigation:hover {
+  scrollbar-color: #444b70 transparent;
+}
+
+.sidebar-navigation::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-navigation::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-navigation::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 20px;
+}
+
+.sidebar-navigation:hover::-webkit-scrollbar-thumb {
+  background: #444b70;
 }
 
 .nav-group-title {
@@ -224,6 +251,9 @@
 .profile-details span {
   color: var(--text-muted);
   font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .collapse-button {
@@ -236,6 +266,7 @@
   background: transparent;
   border: none;
   border-radius: 7px;
+  cursor: pointer;
 }
 
 .collapse-button:hover {
@@ -314,4 +345,12 @@
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+
+/* On short laptop screens, drop the promo card so the whole menu fits
+   without scrolling. */
+@media (max-height: 760px) {
+  .sidebar-upgrade {
+    display: none;
+  }
 }
