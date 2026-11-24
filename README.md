@@ -23,7 +23,7 @@ Describe a website section in plain English and PixelPilot generates it for you 
 | --- | --- |
 | Frontend | React 19, Vite, lucide-react |
 | Backend | Node.js, Express 5, express-rate-limit |
-| AI | Google Gemini (`@google/genai`), default model `gemini-2.5-flash` |
+| AI | Google Gemini (`@google/genai`), default model `gemini-3.8-flash` |
 | Accounts | Supabase Auth (`@supabase/supabase-js`) |
 | Voice | Browser Web Speech API (speech synthesis + recognition) |
 
@@ -59,7 +59,7 @@ See [`.env.example`](.env.example) for the full list.
 | Variable | Where | Purpose |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | backend | **Required.** Your Gemini API key. Never commit this. |
-| `GEMINI_MODEL` | backend | Optional. Defaults to `gemini-2.5-flash`. |
+| `GEMINI_MODEL` | backend | Optional. Defaults to `gemini-3.8-flash`. |
 | `FRONTEND_URL` | backend | Your deployed frontend URL(s), comma-separated, for CORS. |
 | `RATE_LIMIT_PER_MINUTE` | backend | Optional. Generations per visitor per minute (default 10). |
 | `VITE_API_URL` | frontend | URL of your deployed backend. Defaults to `http://localhost:5000`. |

@@ -7,7 +7,9 @@ import {
   Check,
   Code2,
   Eye,
-  Download
+  Download,
+  AlertTriangle,
+  RotateCcw
 } from "lucide-react";
 
 import { buildPreviewDocument, downloadHtmlFile, isPreviewable, slugify } from "../lib/preview";
@@ -86,12 +88,68 @@ function GeneratingState({ pending }) {
   );
 }
 
-function PreviewPanel({ generated, isGenerating = false, pending = null }) {
+// Shown when the last attempt failed, so the old preview isn't mistaken
+// for the new result.
+function FailedState({ message, onRetry, onDismiss, hasPrevious }) {
+  return (
+    <section className="preview-panel">
+      <div className="preview-header">
+        <div>
+          <h2>Generation failed</h2>
+          <p>Nothing was created this time.</p>
+        </div>
+        <span className="generated-status failed-status">
+          <span />
+          Failed
+        </span>
+      </div>
+
+      <div className="preview-empty failed-body">
+        <div className="preview-empty-icon failed-icon">
+          <AlertTriangle size={26} />
+        </div>
+        <h3>That didn&apos;t work</h3>
+        <p>{message}</p>
+        <div className="button-row failed-actions">
+          <button type="button" className="primary-button" onClick={onRetry}>
+            <RotateCcw size={15} />
+            Try again
+          </button>
+          {hasPrevious && (
+            <button type="button" className="secondary-button" onClick={onDismiss}>
+              Show last result
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PreviewPanel({
+  generated,
+  isGenerating = false,
+  pending = null,
+  error = "",
+  onRetry,
+  onDismissError
+}) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("preview");
   const [device, setDevice] = useState("desktop");
 
   if (isGenerating) return <GeneratingState pending={pending} />;
+
+  if (error) {
+    return (
+      <FailedState
+        message={error}
+        onRetry={onRetry}
+        onDismiss={onDismissError}
+        hasPrevious={Boolean(generated)}
+      />
+    );
+  }
 
   if (!generated) {
     return (

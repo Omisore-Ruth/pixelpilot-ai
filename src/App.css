@@ -448,3 +448,9 @@ kbd {
   color: var(--text-primary);
   font-weight: 600;
 }
+
+@media (min-width: 1081px) {
+  .generator-error-banner {
+    display: none;
+  }
+}

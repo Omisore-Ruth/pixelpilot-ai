@@ -38,7 +38,7 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 // Supabase is used only to check that requests come from a signed-in user.
 // The same .env works locally for both frontend (VITE_*) and backend.
@@ -73,6 +73,18 @@ app.use(
 );
 
 app.use(express.json({ limit: "20kb" }));
+
+// A 404 from Gemini almost always means the model name is retired or not
+// available to this API key. Say so plainly in the server log.
+function logModelHint(error) {
+  if (error?.status === 404) {
+    console.error(
+      `\n>>> Gemini says the model "${MODEL_NAME}" was not found. It may be retired or not ` +
+        "available to your API key. Set GEMINI_MODEL in .env to a current model " +
+        "(see https://ai.google.dev/gemini-api/docs/models) and restart the server.\n"
+    );
+  }
+}
 
 // Rejects requests that don't carry a valid Supabase access token.
 async function requireUser(req, res, next) {
@@ -216,6 +228,7 @@ Generate the complete ${targetType} now.`,
   } catch (error) {
     // Log the full error for you, but don't leak provider details to visitors.
     console.error("Generation error:", error);
+    logModelHint(error);
     res.status(502).json({
       success: false,
       error: "Component generation failed. Please try again in a moment."
@@ -321,6 +334,7 @@ CONTEXT: The user is on the "${currentPage}" page.${name ? ` Their name is ${nam
     });
   } catch (error) {
     console.error("Assistant error:", error);
+    logModelHint(error);
     res.status(502).json({
       success: false,
       error: "Sorry, I couldn't think of an answer just now. Please try again."
