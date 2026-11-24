@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   Monitor,
@@ -13,10 +13,85 @@ import {
 import { buildPreviewDocument, downloadHtmlFile, isPreviewable, slugify } from "../lib/preview";
 import "../styles/PreviewPanel.css";
 
-function PreviewPanel({ generated }) {
+function buildSteps({ componentType, framework, primaryColor }) {
+  return [
+    "Reading your brief...",
+    `Planning the ${(componentType || "component").toLowerCase()} layout...`,
+    `Applying your colour ${(primaryColor || "").toUpperCase()}...`,
+    `Writing ${framework || "the"} code...`,
+    "Making it look good on mobile...",
+    "Polishing the final details..."
+  ];
+}
+
+// Shown in place of the preview while the AI is working: a wireframe that
+// shimmers in the chosen colour, plus a status line that moves through steps.
+function GeneratingState({ pending }) {
+  const steps = buildSteps(pending || {});
+  const [step, setStep] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const stepTimer = setInterval(() => setStep((n) => Math.min(n + 1, steps.length - 1)), 2600);
+    const clock = setInterval(() => setSeconds((n) => n + 1), 1000);
+    return () => {
+      clearInterval(stepTimer);
+      clearInterval(clock);
+    };
+  }, [steps.length]);
+
+  return (
+    <section className="preview-panel" aria-busy="true">
+      <div className="preview-header">
+        <div>
+          <h2>Building your component</h2>
+          <p>This usually takes 10–30 seconds.</p>
+        </div>
+        <span className="generated-status generating-status">
+          <span />
+          Generating
+        </span>
+      </div>
+
+      <div className="building-stage" style={{ "--accent": pending?.primaryColor || "#7557F6" }}>
+        <div className="building-frame" aria-hidden="true">
+          <div className="bf-nav">
+            <i className="bf-logo" />
+            <i />
+            <i />
+            <i />
+            <i className="bf-pill" />
+          </div>
+          <div className="bf-hero">
+            <i className="bf-title" />
+            <i className="bf-title short" />
+            <i className="bf-text" />
+            <i className="bf-text shorter" />
+            <i className="bf-button" />
+          </div>
+          <div className="bf-cards">
+            <i />
+            <i />
+            <i />
+          </div>
+        </div>
+
+        <p className="building-step" role="status" key={step}>
+          <span className="building-dot" />
+          {steps[step]}
+        </p>
+        <p className="building-time">{seconds}s</p>
+      </div>
+    </section>
+  );
+}
+
+function PreviewPanel({ generated, isGenerating = false, pending = null }) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("preview");
   const [device, setDevice] = useState("desktop");
+
+  if (isGenerating) return <GeneratingState pending={pending} />;
 
   if (!generated) {
     return (

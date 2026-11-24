@@ -1,4 +1,5 @@
 import { ArrowRight, Sparkles } from "lucide-react";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 function DashboardPage({ userName, framework, savedCount, navigate }) {
   return (
@@ -8,10 +9,7 @@ function DashboardPage({ userName, framework, savedCount, navigate }) {
         YOUR AI FRONTEND WORKSPACE
       </div>
 
-      <h1>
-        Build something
-        <span className="gradient-text"> extraordinary.</span>
-      </h1>
+      <AnimatedHeading lead="Build something" highlight="extraordinary." />
 
       <p className="dashboard-description">
         Describe your ideas, generate frontend components and bring your designs to life with

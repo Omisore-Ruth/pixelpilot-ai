@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, Download, Sparkles, Trash2, X } from "lucide-react";
 
 import { buildCombinedSite, defaultExportSelection, downloadHtmlFile, isPreviewable } from "../lib/preview";
+import AnimatedHeading from "../components/AnimatedHeading";
 
 function SavedComponentsPage({ items, onOpen, onRemove, navigate, notice, onDismissNotice }) {
   // Which components go into the combined export. Starts with the newest of
@@ -32,10 +33,7 @@ function SavedComponentsPage({ items, onOpen, onRemove, navigate, notice, onDism
 
       <div className="page-heading-row">
         <div>
-          <h1>
-            Your generated
-            <span className="gradient-text"> library.</span>
-          </h1>
+          <AnimatedHeading lead="Your generated" highlight="library." />
           <p className="dashboard-description">
             Saved in this browser. Tick the sections you want, then export them as one
             ready-to-deploy index.html — they're arranged nav → hero → content → contact → footer
