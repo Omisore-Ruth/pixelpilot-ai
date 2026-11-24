@@ -40,6 +40,14 @@ if (!process.env.GEMINI_API_KEY) {
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
+// Tried in order when the main model is busy (503), rate-limited (429) or not
+// available (404). Override with GEMINI_FALLBACK_MODELS=model-a,model-b
+const FALLBACK_MODELS = (process.env.GEMINI_FALLBACK_MODELS || "gemini-3.6-flash,gemini-3.5-flash-lite")
+  .split(",")
+  .map((m) => m.trim())
+  .filter(Boolean);
+const MODELS = [...new Set([MODEL_NAME, ...FALLBACK_MODELS])];
+
 // Supabase is used only to check that requests come from a signed-in user.
 // The same .env works locally for both frontend (VITE_*) and backend.
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -74,16 +82,64 @@ app.use(
 
 app.use(express.json({ limit: "20kb" }));
 
-// A 404 from Gemini almost always means the model name is retired or not
-// available to this API key. Say so plainly in the server log.
-function logModelHint(error) {
-  if (error?.status === 404) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// "Busy right now" errors worth retrying or moving to another model for.
+const isBusy = (error) => [429, 500, 503, 504].includes(error?.status);
+
+/**
+ * Calls Gemini, retrying once when a model is busy and then moving on to the
+ * fallback models. Errors that another model can't fix (bad key, bad request)
+ * are thrown straight away. Returns { response, model }.
+ */
+async function generateWithFallback(request, label) {
+  let lastError;
+
+  for (const model of MODELS) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const response = await ai.models.generateContent({ ...request, model });
+        if (model !== MODEL_NAME || attempt > 1) {
+          console.log(`${label}: succeeded with ${model} (attempt ${attempt}).`);
+        }
+        return { response, model };
+      } catch (error) {
+        lastError = error;
+        const status = error?.status;
+
+        if (status === 404) {
+          console.warn(`${label}: model "${model}" not found or not available to this key; trying the next one.`);
+          break; // next model
+        }
+        if (!isBusy(error)) throw error; // e.g. 400 bad request, 403 bad key
+
+        console.warn(`${label}: ${model} is busy (${status}), attempt ${attempt}.`);
+        if (attempt === 1) await sleep(1200);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+// Explains the most common Gemini failures plainly in the server log, and
+// picks a friendly message for the visitor.
+function describeGeminiError(error, fallbackMessage) {
+  const status = error?.status;
+  if (status === 404) {
     console.error(
-      `\n>>> Gemini says the model "${MODEL_NAME}" was not found. It may be retired or not ` +
-        "available to your API key. Set GEMINI_MODEL in .env to a current model " +
+      `\n>>> None of these Gemini models were found: ${MODELS.join(", ")}. They may be retired ` +
+        "or not available to your API key. Set GEMINI_MODEL in .env to a current model " +
         "(see https://ai.google.dev/gemini-api/docs/models) and restart the server.\n"
     );
+  } else if (status === 400 || status === 401 || status === 403) {
+    console.error("\n>>> Gemini rejected the request. Check that GEMINI_API_KEY in .env is correct and active.\n");
   }
+
+  if (isBusy(error)) {
+    return "The AI service is very busy right now. Please try again in a minute.";
+  }
+  return fallbackMessage;
 }
 
 // Rejects requests that don't carry a valid Supabase access token.
@@ -193,8 +249,7 @@ CODE REQUIREMENTS:
 - Return ONLY the raw code—do NOT wrap the response in Markdown \`\`\` code fences and do NOT include explanations.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+    const { response } = await generateWithFallback({
       contents: `USER REQUEST: ${prompt.trim()}
 COMPONENT TYPE: ${targetType}
 FRAMEWORK: ${targetFramework}
@@ -205,7 +260,7 @@ Generate the complete ${targetType} now.`,
       config: {
         systemInstruction: instructions
       }
-    });
+    }, "Generate");
 
     const generatedCode = (response.text || "")
       .trim()
@@ -228,10 +283,9 @@ Generate the complete ${targetType} now.`,
   } catch (error) {
     // Log the full error for you, but don't leak provider details to visitors.
     console.error("Generation error:", error);
-    logModelHint(error);
     res.status(502).json({
       success: false,
-      error: "Component generation failed. Please try again in a moment."
+      error: describeGeminiError(error, "Component generation failed. Please try again in a moment.")
     });
   }
 });
@@ -301,8 +355,7 @@ app.post("/api/assistant", requireUser, assistantLimiter, async (req, res) => {
     typeof userName === "string" ? userName.replace(/[^\p{L}\p{N} '.-]/gu, "").slice(0, 40).trim() : "";
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+    const { response } = await generateWithFallback({
       contents: history.map((m) => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: m.text.trim() }]
@@ -315,7 +368,7 @@ CONTEXT: The user is on the "${currentPage}" page.${name ? ` Their name is ${nam
         responseJsonSchema: PIXIE_SCHEMA,
         temperature: 0.6
       }
-    });
+    }, "Pixie");
 
     let parsed;
     try {
@@ -334,10 +387,9 @@ CONTEXT: The user is on the "${currentPage}" page.${name ? ` Their name is ${nam
     });
   } catch (error) {
     console.error("Assistant error:", error);
-    logModelHint(error);
     res.status(502).json({
       success: false,
-      error: "Sorry, I couldn't think of an answer just now. Please try again."
+      error: describeGeminiError(error, "Sorry, I couldn't think of an answer just now. Please try again.")
     });
   }
 });
@@ -355,4 +407,5 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`PixelPilot backend running at http://localhost:${PORT}`);
+  console.log(`Gemini models (in order): ${MODELS.join(" -> ")}`);
 });
