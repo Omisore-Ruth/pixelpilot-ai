@@ -652,3 +652,23 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- Failed state ---- */
+.failed-status {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.failed-status span {
+  background: #f87171;
+}
+
+.failed-icon {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.failed-actions {
+  justify-content: center;
+  margin-top: 6px;
+}

@@ -28,8 +28,10 @@ function GeneratorPage({
         generate your preview.
       </p>
 
+      {/* On wide screens the preview panel shows the error; this banner is for
+          narrow screens where the preview sits below the form. */}
       {error && (
-        <div className="notice notice-error" role="alert">
+        <div className="notice notice-error generator-error-banner" role="alert">
           <span>{error}</span>
           <button type="button" onClick={onDismissError} aria-label="Dismiss error">
             <X size={15} />
@@ -51,6 +53,9 @@ function GeneratorPage({
           generated={generated}
           isGenerating={isGenerating}
           pending={draft}
+          error={error}
+          onRetry={() => onGenerate({ ...draft, prompt: draft.prompt.trim() })}
+          onDismissError={onDismissError}
         />
       </div>
     </section>
