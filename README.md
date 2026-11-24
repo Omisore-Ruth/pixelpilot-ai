@@ -60,6 +60,7 @@ See [`.env.example`](.env.example) for the full list.
 | --- | --- | --- |
 | `GEMINI_API_KEY` | backend | **Required.** Your Gemini API key. Never commit this. |
 | `GEMINI_MODEL` | backend | Optional. Defaults to `gemini-3.8-flash`. |
+| `GEMINI_FALLBACK_MODELS` | backend | Optional, comma-separated. Tried in order when the main model is busy (503), rate-limited (429) or unavailable (404). Defaults to `gemini-3.6-flash,gemini-3.5-flash-lite`. |
 | `FRONTEND_URL` | backend | Your deployed frontend URL(s), comma-separated, for CORS. |
 | `RATE_LIMIT_PER_MINUTE` | backend | Optional. Generations per visitor per minute (default 10). |
 | `VITE_API_URL` | frontend | URL of your deployed backend. Defaults to `http://localhost:5000`. |
