@@ -52,7 +52,7 @@ cp .env.example .env      # then paste your GEMINI_API_KEY into .env
 Start the backend and frontend in two terminals:
 
 ```bash
-npm run server   # API on http://localhost:5000
+npm run server   # API on http://localhost:5000 (server/index.js → server/app.js)
 npm run dev      # app on http://localhost:5173
 ```
 
@@ -72,13 +72,24 @@ See [`.env.example`](.env.example) for the full list.
 | `VITE_SUPABASE_ANON_KEY` | frontend (+ backend locally) | Supabase anon / publishable key (safe to expose; never use the service-role key). |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | backend (when deployed) | Same values as above, so the API can check logins. |
 
-## Deploying
+## Deploying to Vercel
 
-1. **Backend → Render** (or Railway): create a Web Service from this repo with start command `npm run server`. Add `GEMINI_API_KEY`, `FRONTEND_URL`, `SUPABASE_URL` and `SUPABASE_ANON_KEY` in the service's environment settings.
-2. **Frontend → Netlify** (or Vercel): build command `npm run build`, publish directory `dist`. Set `VITE_API_URL`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-3. In Supabase **Authentication → URL Configuration**, set the Site URL to your live frontend URL and add it to Redirect URLs.
+The website and the backend deploy together as **one Vercel project**: Vite builds the site, and `api/index.js` runs the Express backend as a serverless function under `/api` (see `vercel.json`).
 
-> Free Render services sleep after inactivity, so the first generation after a while can take ~30 seconds. The app tells users to wait and retry if that happens.
+1. On [vercel.com](https://vercel.com), click **Add New → Project** and import this GitHub repo. Vercel detects **Vite**; leave the build settings as they are.
+2. Under **Environment Variables**, add:
+   | Name | Value |
+   | --- | --- |
+   | `GEMINI_API_KEY` | your Gemini key |
+   | `GEMINI_MODEL` | e.g. `gemini-3.5-flash-lite` (optional) |
+   | `VITE_SUPABASE_URL` | your Supabase Project URL |
+   | `VITE_SUPABASE_ANON_KEY` | your Supabase publishable/anon key |
+
+   **Don't add `VITE_API_URL`** on Vercel: the site and API share one address.
+3. Click **Deploy**. When it's live, open `https://YOUR-SITE.vercel.app/api/health`. It should say the backend is running, with `"gemini": true` and `"auth": true`.
+4. In Supabase, go to **Authentication → URL Configuration**, set **Site URL** to your Vercel address, and add it under **Redirect URLs** (keep `http://localhost:5173` there too for local development).
+
+Every push to `master` redeploys automatically.
 
 ## Security notes
 
@@ -91,7 +102,9 @@ See [`.env.example`](.env.example) for the full list.
 ## Project structure
 
 ```
-server/index.js          Express API that calls Gemini
+server/app.js            Express API (Gemini, auth checks, rate limits)
+server/index.js          Runs the API locally on port 5000
+api/index.js             Runs the same API on Vercel
 src/App.jsx              Shows login screen or the workspace
 src/pages/               One file per screen
 src/components/          Sidebar, prompt form, preview panel

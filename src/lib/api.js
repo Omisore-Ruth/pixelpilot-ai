@@ -1,6 +1,11 @@
 import { getAccessToken } from "./supabase";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
+// Locally the backend runs on port 5000. When deployed (e.g. on Vercel) the
+// backend lives on the same site under /api, so no address is needed.
+const API_BASE = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:5000" : "")).replace(
+  /\/$/,
+  ""
+);
 
 const REQUEST_TIMEOUT_MS = 90_000;
 

@@ -20,7 +20,7 @@ export default defineConfig([
   },
   {
     // The Express backend runs in Node, not the browser.
-    files: ['server/**/*.js'],
+    files: ['server/**/*.js', 'api/**/*.js'],
     languageOptions: {
       globals: globals.node,
     },
