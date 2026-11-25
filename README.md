@@ -15,6 +15,8 @@ Describe a website section in plain English and PixelPilot generates it for you 
 - **Starter presets** to get going quickly.
 - **Accounts** — register, sign in, reset a forgotten password and sign out, powered by Supabase. The API only answers signed-in users.
 - **Pixie, the voice guide** — greets users out loud after they sign in, answers spoken or typed questions about PixelPilot, and can open pages on request. Play, pause, stop and mute controls.
+- **Projects** — group sections into a website, reorder them, and export each project as one page. Saved to your account, so they follow you across devices.
+- **Refine with AI, edit, delete** — describe a change ("make the headline bigger") and the existing design updates, with Undo; or edit the code by hand; or delete it.
 - **Shareable pages** — each screen has its own URL (`/#/generate`, `/#/saved`, …), so refreshing keeps your place.
 
 ## Tech stack
@@ -44,6 +46,8 @@ cp .env.example .env      # then paste your GEMINI_API_KEY into .env
 2. Go to **Project Settings → API** and copy the **Project URL** and the **anon / publishable key** into `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 3. Go to **Authentication → URL Configuration**. Set **Site URL** to `http://localhost:5173` while developing (your live URL once deployed) and add both URLs under **Redirect URLs**. Confirmation and password-reset emails link back here.
 4. Optional: under **Authentication → Providers → Email** you can turn off "Confirm email" while testing so new accounts can sign in straight away.
+
+5. **Create the database tables** (for saved components and projects): go to **SQL Editor → New query**, paste the whole of [`supabase/schema.sql`](supabase/schema.sql) and click **Run**. Until you do, the app still works but saves projects in the browser only, and it moves them online automatically once the tables exist.
 
 Start the backend and frontend in two terminals:
 
@@ -79,7 +83,8 @@ See [`.env.example`](.env.example) for the full list.
 ## Security notes
 
 - `.env` is git-ignored — keep your API key out of the repo.
-- `/api/generate` and `/api/assistant` require a valid Supabase login token, and rate limits apply per user.
+- Saved components and projects are protected by Supabase Row Level Security, so each user can only read and change their own.
+- `/api/generate`, `/api/refine` and `/api/assistant` require a valid Supabase login token, and rate limits apply per user.
 - The `/api/generate` endpoint is rate-limited per IP and only accepts known option values, so your Gemini quota can't be drained or the prompt tampered with through the dropdown fields.
 - Generated code is previewed in a sandboxed `<iframe>` with no access to the app.
 
@@ -100,7 +105,6 @@ src/components/Pixie.jsx   Voice assistant
 ## Roadmap
 
 - "Refine" follow-up edits on a generated component
-- Save components to the user's account (Supabase database) so they follow them across devices
 - Live preview for React output
 - Streaming responses
 

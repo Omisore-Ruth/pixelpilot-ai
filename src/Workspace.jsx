@@ -12,44 +12,18 @@ import ProjectsPage from "./pages/ProjectsPage";
 import SettingsPage from "./pages/SettingsPage";
 import HelpPage from "./pages/HelpPage";
 
-import { STARTER_COMPONENTS } from "./data/starters";
-import { FRAMEWORKS, MAX_SAVED, makeDraft } from "./data/options";
-import { generateComponent } from "./lib/api";
+import { FRAMEWORKS, makeDraft } from "./data/options";
+import { generateComponent, refineComponent } from "./lib/api";
 import { readLegacyString, readStorage, writeStorage } from "./lib/storage";
 import { supabase } from "./lib/supabase";
 import { useHashRoute } from "./hooks/useHashRoute";
+import { useLibrary } from "./hooks/useLibrary";
 
 import "./App.css";
 
 const PIXIE_WELCOME_KEY = "pixelpilot_pixie_welcome";
 
-// Saved components are kept per account, so two people sharing a browser
-// don't see each other's work.
-const savedKey = (userId) => `pixelpilot_saved:${userId}`;
-const LEGACY_SAVED_KEY = "pixelpilot_saved";
 const FRAMEWORK_KEY = "pixelpilot_framework";
-
-function loadSavedComponents(userId) {
-  let stored = readStorage(savedKey(userId), null);
-
-  // One-time move of components saved before accounts existed.
-  if (!Array.isArray(stored)) {
-    const legacy = readStorage(LEGACY_SAVED_KEY, null);
-    if (Array.isArray(legacy)) {
-      stored = legacy;
-      try {
-        localStorage.removeItem(LEGACY_SAVED_KEY);
-      } catch {
-        // ignore
-      }
-    }
-  }
-
-  // Only seed the starter examples on a first visit. If the user has deleted
-  // items (even all of them), respect that instead of adding them back.
-  if (!Array.isArray(stored)) return STARTER_COMPONENTS;
-  return stored.filter((item) => item && item.id != null && typeof item.code === "string");
-}
 
 function loadFramework() {
   const value = readLegacyString(FRAMEWORK_KEY, "Bootstrap");
@@ -63,20 +37,25 @@ function Workspace({ user, welcomeOnMount = false }) {
 
   const [userName, setUserName] = useState(() => (user.user_metadata?.full_name || "").trim());
   const [preferredFramework, setPreferredFramework] = useState(loadFramework);
-  const [savedComponents, setSavedComponents] = useState(() => loadSavedComponents(user.id));
+  // Saved components and projects (online in Supabase, or this browser as a fallback).
+  const library = useLibrary(user.id);
+  const savedComponents = library.components;
   const [pixieWelcome, setPixieWelcome] = useState(() => readStorage(PIXIE_WELCOME_KEY, true));
 
   // The generator form lives here so a half-typed prompt survives switching pages.
   const [draft, setDraft] = useState(() => makeDraft(loadFramework()));
-  const [generated, setGenerated] = useState(() => loadSavedComponents(user.id)[0] ?? null);
+  // Which saved component the preview shows. undefined = "the newest one".
+  const [selectedId, setSelectedId] = useState(undefined);
+  const generated =
+    selectedId === undefined
+      ? savedComponents[0] ?? null
+      : savedComponents.find((c) => c.id === selectedId) ?? null;
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [libraryNotice, setLibraryNotice] = useState("");
   const [toast, setToast] = useState(null);
   const closeToast = useCallback(() => setToast(null), []);
 
   useEffect(() => writeStorage(FRAMEWORK_KEY, preferredFramework), [preferredFramework]);
-  useEffect(() => writeStorage(savedKey(user.id), savedComponents), [savedComponents, user.id]);
   useEffect(() => writeStorage(PIXIE_WELCOME_KEY, pixieWelcome), [pixieWelcome]);
 
   // Saves the display name to the user's Supabase account.
@@ -110,24 +89,22 @@ function Workspace({ user, welcomeOnMount = false }) {
     try {
       const data = await generateComponent(settings);
       // Use the values the server actually used, in case it normalised any.
-      const item = {
+      const item = await library.addComponent({
         prompt: settings.prompt,
         componentType: data.componentType,
         framework: data.framework,
         designStyle: data.designStyle,
         primaryColor: data.primaryColor,
-        code: data.code,
-        id: Date.now()
-      };
+        code: data.code
+      });
 
-      setGenerated(item);
-      if (savedComponents.length >= MAX_SAVED) {
-        setLibraryNotice(
-          `Your library holds up to ${MAX_SAVED} components, so the oldest one was removed. Export anything you want to keep.`
-        );
-      }
-      setSavedComponents((prev) => [item, ...prev].slice(0, MAX_SAVED));
-      setToast({ id: item.id, message: `${item.componentType} saved to your library` });
+      setSelectedId(item.id);
+      setToast({
+        id: item.id,
+        message: `${item.componentType} saved to your library`,
+        actionLabel: "View",
+        onAction: () => handleNavigation("Saved Components")
+      });
     } catch (error) {
       setErrorMessage(error.message || "Unable to generate component. Please try again.");
     } finally {
@@ -135,9 +112,44 @@ function Workspace({ user, welcomeOnMount = false }) {
     }
   };
 
-  const handleRemove = (id) => {
-    setSavedComponents((prev) => prev.filter((c) => c.id !== id));
-    if (generated?.id === id) setGenerated(null);
+  const handleRemove = async (id) => {
+    await library.deleteComponent(id);
+    if (generated?.id === id) setSelectedId(null);
+  };
+
+  const openInPreview = (item) => {
+    setSelectedId(item.id);
+    setErrorMessage("");
+    handleNavigation("Generate UI");
+  };
+
+  // Refine with AI: update the current component, with an Undo in the toast.
+  const handleRefine = async (instruction) => {
+    const target = generated;
+    const data = await refineComponent({
+      code: target.code,
+      instruction,
+      framework: target.framework,
+      componentType: target.componentType,
+      primaryColor: target.primaryColor
+    });
+    const previousCode = target.code;
+    await library.updateComponent(target.id, { code: data.code });
+    setToast({
+      id: `refine-${Date.now()}`,
+      message: "Change applied",
+      actionLabel: "Undo",
+      duration: 8000,
+      onAction: () => library.updateComponent(target.id, { code: previousCode })
+    });
+  };
+
+  const handleSaveCode = (code) => library.updateComponent(generated.id, { code });
+
+  const handleDeleteCurrent = async () => {
+    const name = generated.componentType;
+    await handleRemove(generated.id);
+    setToast({ id: `del-${Date.now()}`, message: `${name} deleted` });
   };
 
   const pageTitle = activeItem;
@@ -218,20 +230,27 @@ function Workspace({ user, welcomeOnMount = false }) {
             generated={generated}
             error={errorMessage}
             onDismissError={() => setErrorMessage("")}
+            projects={library.projects}
+            onAssignProject={(projectId) => library.assignToProject(generated.id, projectId)}
+            onCreateProject={library.addProject}
+            onSaveCode={handleSaveCode}
+            onRefine={handleRefine}
+            onDelete={handleDeleteCurrent}
+            loading={library.loading}
           />
         )}
 
         {activeItem === "Saved Components" && (
           <SavedComponentsPage
+            key={library.loading ? "loading" : "ready"}
             items={savedComponents}
-            onOpen={(item) => {
-              setGenerated(item);
-              handleNavigation("Generate UI");
-            }}
+            projects={library.projects}
+            loading={library.loading}
+            onOpen={openInPreview}
             onRemove={handleRemove}
             navigate={handleNavigation}
-            notice={libraryNotice}
-            onDismissNotice={() => setLibraryNotice("")}
+            notice={library.notice}
+            onDismissNotice={library.dismissNotice}
           />
         )}
 
@@ -246,9 +265,8 @@ function Workspace({ user, welcomeOnMount = false }) {
 
         {activeItem === "My Projects" && (
           <ProjectsPage
-            savedCount={savedComponents.length}
-            userName={userName}
-            framework={preferredFramework}
+            library={library}
+            onOpen={openInPreview}
             navigate={handleNavigation}
           />
         )}
@@ -273,10 +291,11 @@ function Workspace({ user, welcomeOnMount = false }) {
         <Toast
           key={toast.id}
           message={toast.message}
-          actionLabel="View"
+          actionLabel={toast.actionLabel}
+          duration={toast.duration}
           onAction={() => {
             closeToast();
-            handleNavigation("Saved Components");
+            toast.onAction?.();
           }}
           onClose={closeToast}
         />

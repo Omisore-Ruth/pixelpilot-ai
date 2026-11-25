@@ -10,9 +10,15 @@ import {
   Download,
   AlertTriangle,
   RotateCcw,
-  Maximize2
+  Maximize2,
+  Pencil,
+  Save,
+  Trash2,
+  X as XIcon
 } from "lucide-react";
 import FullscreenPreview from "./FullscreenPreview";
+import ProjectPicker from "./ProjectPicker";
+import RefineBox from "./RefineBox";
 
 import { buildPreviewDocument, downloadHtmlFile, isPreviewable, slugify } from "../lib/preview";
 import "../styles/PreviewPanel.css";
@@ -134,9 +140,21 @@ function PreviewPanel({
   pending = null,
   error = "",
   onRetry,
-  onDismissError
+  onDismissError,
+  projects = [],
+  onAssignProject,
+  onCreateProject,
+  onSaveCode,
+  onRefine,
+  onDelete
 }) {
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [codeDraft, setCodeDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState("preview");
   const [device, setDevice] = useState("desktop");
   const [fullscreen, setFullscreen] = useState(false);
@@ -204,6 +222,36 @@ function PreviewPanel({
       return;
     }
     downloadHtmlFile(`${slug}.html`, buildPreviewDocument(generated.code, generated.framework, generated.componentType));
+  };
+
+  const startEditing = () => {
+    setCodeDraft(generated.code || "");
+    setSaveError("");
+    setEditing(true);
+    setActiveTab("code");
+  };
+
+  const handleSaveCode = async () => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onSaveCode(codeDraft);
+      setEditing(false);
+    } catch (err) {
+      setSaveError(err?.message ? `Couldn't save: ${err.message}` : "Couldn't save your changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete();
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   return (
@@ -313,21 +361,94 @@ function PreviewPanel({
       ) : (
         <div className="code-stage">
           <div className="code-heading">
-            <span>{generated.framework} Source Code</span>
-            <button type="button" onClick={handleCopy}>
-              {copied ? <Check size={13} /> : <Copy size={13} />}
-              {copied ? "Copied!" : "Copy Code"}
-            </button>
+            <span>
+              {generated.framework} Source Code{editing ? " · editing" : ""}
+            </span>
+            {editing ? (
+              <div className="code-actions">
+                <button type="button" onClick={handleSaveCode} disabled={saving || !codeDraft.trim()}>
+                  <Save size={13} />
+                  {saving ? "Saving..." : "Save"}
+                </button>
+                <button type="button" onClick={() => setEditing(false)} disabled={saving}>
+                  <XIcon size={13} />
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="code-actions">
+                {onSaveCode && (
+                  <button type="button" onClick={startEditing}>
+                    <Pencil size={13} />
+                    Edit
+                  </button>
+                )}
+                <button type="button" onClick={handleCopy}>
+                  {copied ? <Check size={13} /> : <Copy size={13} />}
+                  {copied ? "Copied!" : "Copy Code"}
+                </button>
+              </div>
+            )}
           </div>
-          <pre>
-            <code>{generated.code || "No code was returned."}</code>
-          </pre>
+          {editing ? (
+            <textarea
+              className="code-editor"
+              value={codeDraft}
+              onChange={(e) => setCodeDraft(e.target.value)}
+              spellCheck={false}
+              aria-label="Edit component code"
+            />
+          ) : (
+            <pre>
+              <code>{generated.code || "No code was returned."}</code>
+            </pre>
+          )}
+          {saveError && (
+            <p className="code-error" role="alert">
+              {saveError}
+            </p>
+          )}
         </div>
       )}
 
-      <div className="preview-footer">
-        <span>Component: {generated.componentType}</span>
-        <span>Framework: {generated.framework}</span>
+      {onRefine && <RefineBox onRefine={onRefine} disabled={editing} />}
+
+      <div className="preview-actions">
+        {onAssignProject && (
+          <ProjectPicker
+            projects={projects}
+            projectId={generated.projectId}
+            onAssign={onAssignProject}
+            onCreate={onCreateProject}
+          />
+        )}
+
+        {onDelete && (
+          <div className="delete-control">
+            {confirmDelete ? (
+              <>
+                <span>Delete this component?</span>
+                <button type="button" className="danger" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? "Deleting..." : "Yes, delete"}
+                </button>
+                <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                  Keep
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="delete-trigger"
+                onClick={() => setConfirmDelete(true)}
+                aria-label="Delete this component"
+                title="Delete"
+              >
+                <Trash2 size={14} />
+                Delete
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {fullscreen && isHtmlPreviewable && (

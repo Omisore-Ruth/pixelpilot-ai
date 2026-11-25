@@ -12,7 +12,14 @@ function GeneratorPage({
   isGenerating,
   generated,
   error,
-  onDismissError
+  onDismissError,
+  projects,
+  onAssignProject,
+  onCreateProject,
+  onSaveCode,
+  onRefine,
+  onDelete,
+  loading
 }) {
   return (
     <section className="generator-page">
@@ -56,6 +63,13 @@ function GeneratorPage({
           error={error}
           onRetry={() => onGenerate({ ...draft, prompt: draft.prompt.trim() })}
           onDismissError={onDismissError}
+          projects={projects}
+          onAssignProject={onAssignProject}
+          onCreateProject={onCreateProject}
+          onSaveCode={onSaveCode}
+          onRefine={onRefine}
+          onDelete={onDelete}
+          loading={loading}
         />
       </div>
     </section>

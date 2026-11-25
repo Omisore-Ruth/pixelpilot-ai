@@ -58,3 +58,7 @@ export function generateComponent(settings) {
 export function askPixie({ messages, page, userName }) {
   return postJson("/api/assistant", { messages, page, userName });
 }
+
+export function refineComponent({ code, instruction, framework, componentType, primaryColor }) {
+  return postJson("/api/refine", { code, instruction, framework, componentType, primaryColor });
+}

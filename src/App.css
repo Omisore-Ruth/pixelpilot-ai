@@ -454,3 +454,214 @@ kbd {
     display: none;
   }
 }
+
+.project-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(117, 87, 246, 0.14);
+  color: #c4b5fd;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.loading-line {
+  margin-top: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---- Projects ---- */
+.new-project-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.new-project-row input,
+.rename-form input,
+.add-section select {
+  flex: 1;
+  min-width: 220px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: #141a30;
+  color: white;
+  font-size: 13px;
+  outline: none;
+}
+
+.new-project-row input:focus,
+.rename-form input:focus {
+  border-color: rgba(167, 139, 250, 0.7);
+}
+
+.inline-error {
+  margin-top: 10px !important;
+  color: #fca5a5 !important;
+  font-size: 12px !important;
+}
+
+.inline-icon {
+  vertical-align: -3px;
+  margin-right: 8px;
+  color: var(--accent-secondary);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.project-detail .page-card {
+  margin-top: 14px;
+}
+
+.project-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.project-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+}
+
+.rename-form {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.icon-button:hover:not(:disabled) {
+  color: white;
+  background: rgba(117, 87, 246, 0.2);
+}
+
+.icon-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.secondary-button.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.danger-button {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: white !important;
+}
+
+.section-list {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.section-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.section-number {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(117, 87, 246, 0.2);
+  color: #c4b5fd;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.section-info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.section-info strong {
+  font-size: 13px;
+}
+
+.section-info span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.section-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-empty {
+  margin: 12px 0 18px;
+}
+
+.add-section {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .section-list li {
+    flex-wrap: wrap;
+  }
+
+  .section-tools {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Leave room at the bottom so the floating "Ask Pixie" button never covers
+   the last controls on a page (e.g. Delete under the preview). */
+.dashboard-page,
+.generator-page {
+  padding-bottom: 120px;
+}

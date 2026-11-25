@@ -20,6 +20,21 @@ function HelpPage({ navigate }) {
           <li>Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> in the prompt box to generate.</li>
         </ul>
 
+        <h3>Changing a design</h3>
+        <p>
+          Under any result, type a change into <strong>Refine with AI</strong> (for example &quot;make
+          the headline bigger&quot;) and it updates the existing design. Press <strong>Undo</strong> in
+          the pop-up if you don&apos;t like it. For small tweaks, open the <strong>Code</strong> tab and
+          click <strong>Edit</strong>.
+        </p>
+
+        <h3>Projects</h3>
+        <p>
+          Use <strong>Add to project</strong> under a result to group sections into a website. In
+          <strong> My Projects</strong> you can reorder sections, remove them, rename or delete the
+          project, and export it as one page.
+        </p>
+
         <h3>Talking to Pixie</h3>
         <p>
           Tap <strong>Ask Pixie</strong> in the bottom-right corner. Use the microphone to speak
@@ -30,9 +45,8 @@ function HelpPage({ navigate }) {
 
         <h3>Where is my work saved?</h3>
         <p>
-          Your account is saved online, but generated components are stored in this browser for
-          your account only. Clearing your browser data or switching devices will remove them, so
-          export anything you want to keep.
+          Everything you generate is saved to your account, along with your projects, so it&apos;s
+          there when you sign in on another device.
         </p>
 
         <button type="button" className="primary-button" onClick={() => navigate("Generate UI")}>

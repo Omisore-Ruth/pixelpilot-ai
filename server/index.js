@@ -25,6 +25,8 @@ const FRAMEWORKS = ["Bootstrap", "HTML & CSS", "React"];
 const DESIGN_STYLES = ["Modern", "Minimal", "Glassmorphism", "Gradient", "Corporate"];
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const MAX_PROMPT_LENGTH = 1000;
+const MAX_INSTRUCTION_LENGTH = 500;
+const MAX_CODE_LENGTH = 120000;
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -80,7 +82,8 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "20kb" }));
+// Large enough for a full generated page sent back for refining.
+app.use(express.json({ limit: "250kb" }));
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -291,6 +294,78 @@ Generate the complete ${targetType} now.`,
 });
 
 // ---------------------------------------------------------------------------
+// Refine: change an existing component instead of starting over
+// ---------------------------------------------------------------------------
+app.post("/api/refine", requireUser, generateLimiter, async (req, res) => {
+  const { code, instruction, framework, componentType, primaryColor } = req.body || {};
+
+  if (typeof code !== "string" || !code.trim()) {
+    return res.status(400).json({ success: false, error: "There's no component to refine." });
+  }
+  if (code.length > MAX_CODE_LENGTH) {
+    return res.status(400).json({
+      success: false,
+      error: "This component is too large to refine. Try refining a single section instead."
+    });
+  }
+  if (typeof instruction !== "string" || !instruction.trim()) {
+    return res.status(400).json({ success: false, error: "Please describe what you'd like to change." });
+  }
+  if (instruction.length > MAX_INSTRUCTION_LENGTH) {
+    return res.status(400).json({
+      success: false,
+      error: `Please keep your change under ${MAX_INSTRUCTION_LENGTH} characters.`
+    });
+  }
+
+  const targetFramework = pick(framework, FRAMEWORKS, "Bootstrap");
+  const targetType = pick(componentType, COMPONENT_TYPES, "Hero Section");
+  const accent =
+    typeof primaryColor === "string" && HEX_COLOR.test(primaryColor) ? primaryColor : null;
+  if (!targetFramework || !targetType) {
+    return res.status(400).json({ success: false, error: "One of the component details is invalid." });
+  }
+
+  const refineInstructions = `You are PixelPilot AI, an expert frontend developer.
+You will receive existing ${targetFramework} code for a "${targetType}" and a change request.
+
+RULES:
+- Apply ONLY the requested change. Keep everything else (structure, copy, styles, classes, scripts) exactly as it is.
+- Keep the same framework (${targetFramework}) and keep it responsive.${accent ? `\n- The brand colour is ${accent} unless the change request says otherwise.` : ""}
+- If the request is unclear or impossible, make the closest sensible change.
+- Return the COMPLETE updated code only — no Markdown code fences, no explanations.`;
+
+  try {
+    const { response } = await generateWithFallback(
+      {
+        contents: `CHANGE REQUEST: ${instruction.trim()}
+
+EXISTING CODE:
+${code}`,
+        config: { systemInstruction: refineInstructions }
+      },
+      "Refine"
+    );
+
+    const updated = (response.text || "")
+      .trim()
+      .replace(/^```[\w-]*\n?/i, "")
+      .replace(/\n?```$/i, "")
+      .trim();
+
+    if (!updated) throw new Error("The AI returned an empty response.");
+
+    res.json({ success: true, code: updated });
+  } catch (error) {
+    console.error("Refine error:", error);
+    res.status(502).json({
+      success: false,
+      error: describeGeminiError(error, "Couldn't apply that change. Please try again.")
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Pixie, the voice assistant
 // ---------------------------------------------------------------------------
 const PAGES = [
@@ -311,7 +386,9 @@ WHAT PIXELPILOT DOES:
 - Component types: Hero Section, Navigation Bar, Feature Cards, Contact Form, Pricing Section, Footer, or a Full Website with all sections.
 - Frameworks: Bootstrap 5, plain HTML & CSS, or React. Design styles: Modern, Minimal, Glassmorphism, Gradient, Corporate. Users also pick a brand colour.
 - Results show in a live preview with desktop and mobile views, plus a Code tab with a copy button and an HTML (or JSX) download.
-- Every result is saved automatically in Saved Components, in this browser. There users tick the sections they want and export them as one index.html, ordered nav, hero, content, contact, footer.
+- Every result is saved automatically to their account in Saved Components. There users tick the sections they want and export them as one index.html, ordered nav, hero, content, contact, footer.
+- Under a result, users can "Refine with AI" (describe a change, e.g. "make the headline bigger", and it edits the existing design; there's an Undo), edit the code by hand in the Code tab, add it to a project, or delete it.
+- My Projects groups sections into projects (e.g. "Restaurant website"). There users rename or delete projects, reorder sections with up/down arrows, remove sections, and export a project as one index.html in their chosen order.
 - Component Library has ready-made starter prompts. Settings holds their display name, default framework and whether you greet them on login.
 - Tip: better prompts name the business, the audience, the layout and must-have elements. Ctrl+Enter generates.
 - React results can't be previewed live yet; they can be copied or downloaded.
